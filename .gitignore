@@ -1,0 +1,7 @@
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+.venv/
+
+# RMA exports contain customer PII and must not be committed.
+rma/*.json

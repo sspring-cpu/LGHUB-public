@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LG RMA Hub</title>
+<style>
+/* Combined hub: LG RMA lookup (home) + LG Battery & Inverter Troubleshooter (sidebar).
+   Built from copies of both artifacts; the originals stay separate. */
+:root{
+  --navy:#0f2a43; --navy-light:#16395a; --blue:#1f6feb; --blue-light:#eaf2fe;
+  --amber:#b4760b; --amber-bg:#fff6e5; --red:#b42318; --red-bg:#fdecea;
+  --green:#166534; --green-bg:#eafaf0; --ink:#16213a; --muted:#5b6b82;
+  --line:#e2e8f0; --bg:#f4f6f9; --card:#ffffff; --radius:10px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;}
+a{color:var(--blue);}
+.app{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{width:250px;flex:none;background:var(--navy);color:#dce8f7;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.brand{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.12);}
+.brand .title{font-weight:700;font-size:15.5px;color:#fff;line-height:1.3;}
+.brand .subtitle{font-size:11.5px;color:#9fb7d4;margin-top:4px;}
+nav.navlist{padding:10px;flex:1;}
+.navgroup{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#7f9ab8;margin:14px 12px 6px;}
+.navgroup:first-child{margin-top:4px;}
+.navlink{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:2px;border-radius:8px;cursor:pointer;font-size:13.5px;color:#cfe0f3;user-select:none;}
+.navlink:hover{background:rgba(255,255,255,.08);color:#fff;}
+.navlink.active{background:var(--blue);color:#fff;font-weight:600;}
+.navlink .ic{font-size:15px;width:18px;text-align:center;}
+.sidebar-foot{padding:14px 18px;font-size:11px;color:#7f9ab8;border-top:1px solid rgba(255,255,255,.12);}
+
+/* ---------- Main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:5;}
+.topbar h1{font-size:17px;margin:0;flex:none;color:var(--navy);}
+.search-wrap{flex:1;max-width:480px;position:relative;margin-left:auto;}
+.search-wrap.hidden{visibility:hidden;}
+.search-wrap input{width:100%;padding:9px 14px 9px 34px;border-radius:8px;border:1px solid var(--line);font-size:13.5px;background:var(--bg);}
+.search-wrap input:focus{outline:2px solid var(--blue);outline-offset:-1px;background:#fff;}
+.search-wrap .sic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;}
+.search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(15,42,67,.14);max-height:70vh;overflow-y:auto;z-index:20;}
+.search-results .sr-item{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;}
+.search-results .sr-item:last-child{border-bottom:none;}
+.search-results .sr-item:hover{background:var(--blue-light);}
+.search-results .sr-tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--blue);font-weight:700;}
+.search-results .sr-title{font-size:13.5px;font-weight:600;margin-top:2px;}
+.search-results .sr-snip{font-size:12px;color:var(--muted);margin-top:2px;}
+.search-empty{padding:14px;font-size:13px;color:var(--muted);}
+.content{padding:24px 28px 60px;max-width:1080px;width:100%;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- Troubleshooter components ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;}
+.page-title{font-size:22px;font-weight:700;margin:0 0 6px;color:var(--navy);}
+.page-sub{color:var(--muted);font-size:14px;margin:0 0 20px;line-height:1.5;}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
+.badge-rma-yes{background:var(--red-bg);color:var(--red);}
+.badge-rma-conditional{background:var(--amber-bg);color:var(--amber);}
+.badge-rma-no{background:var(--green-bg);color:var(--green);}
+.warning-box{background:var(--amber-bg);border:1px solid #f3dca6;color:#7a4e02;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:10px;}
+.note-box{background:var(--blue-light);border:1px solid #c9ddfb;color:#153a66;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:10px;}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.pill{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--muted);}
+.btn{display:inline-block;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;}
+.btn.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.btn:hover{opacity:.92;}
+.step-list{margin:10px 0 0;padding-left:0;list-style:none;counter-reset:stepnum;}
+.step-list li{position:relative;padding:7px 0 7px 26px;font-size:13.8px;line-height:1.5;border-bottom:1px solid #eef1f5;}
+.step-list li:last-child{border-bottom:none;}
+.step-list li:before{content:counter(stepnum);counter-increment:stepnum;position:absolute;left:0;top:7px;width:18px;height:18px;border-radius:50%;background:var(--navy-light);color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.topic-block{border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.topic-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;background:#fafbfd;}
+.topic-head:hover{background:var(--blue-light);}
+.topic-head .th-title{font-weight:600;font-size:14.5px;}
+.topic-body{padding:4px 18px 16px;display:none;}
+.topic-body.open{display:block;}
+.decision-box{background:#f9fafc;border:1px dashed #c6d0dd;border-radius:8px;padding:12px 14px;margin-top:12px;}
+.decision-box .dq{font-weight:700;font-size:13px;margin-bottom:8px;color:var(--navy);}
+.branch-row{display:flex;gap:10px;padding:7px 0;border-top:1px solid #e9edf3;font-size:13px;}
+.branch-row:first-of-type{border-top:none;}
+.branch-when{flex:0 0 220px;font-weight:600;color:var(--navy-light);}
+.branch-result{flex:1;color:var(--ink);}
+table.ftable{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+table.ftable th{text-align:left;background:var(--navy);color:#fff;padding:8px 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;}
+table.ftable td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+table.ftable tr:hover td{background:var(--blue-light);}
+.code-chip{font-family:var(--mono);font-weight:700;background:var(--bg);border-radius:5px;padding:2px 6px;font-size:12px;}
+.wiz-card{max-width:680px;margin:0 auto;}
+.wiz-q{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+.wiz-opt{display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;font-size:14px;color:var(--ink);}
+.wiz-opt:hover{border-color:var(--blue);background:var(--blue-light);}
+.wiz-crumbs{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.wiz-crumbs span{cursor:pointer;color:var(--blue);}
+.wiz-result-title{font-size:19px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.wiz-result-summary{color:var(--muted);font-size:13.5px;margin-bottom:10px;}
+.wiz-actions{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;}
+.lib-layout{display:flex;gap:20px;align-items:flex-start;}
+.lib-list{flex:0 0 230px;}
+.lib-list .lib-item{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:3px;color:var(--ink);}
+.lib-list .lib-item:hover{background:var(--blue-light);}
+.lib-list .lib-item.active{background:var(--navy);color:#fff;font-weight:600;}
+.lib-list .lib-cat{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:14px 0 6px 12px;}
+.lib-detail{flex:1;min-width:0;}
+.wf-stage{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;padding:14px 16px;margin-bottom:12px;}
+.wf-stage .wf-name{font-weight:700;color:var(--navy);font-size:15px;}
+.wf-stage .wf-lane{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.wf-stage ul{margin:6px 0 0;padding-left:18px;font-size:13.5px;line-height:1.6;}
+.wf-stage .wf-branch{margin-top:8px;font-size:13px;background:var(--amber-bg);color:#7a4e02;border-radius:6px;padding:8px 10px;}
+.wf-arrow{text-align:center;color:var(--muted);font-size:18px;margin:-4px 0 8px;}
+.contact-card{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;}
+.contact-card .c-label{font-weight:700;font-size:14px;color:var(--navy);}
+.contact-card .c-value{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:3px;}
+.contact-card .c-note{font-size:12.5px;color:var(--muted);margin-top:4px;max-width:420px;}
+.copy-btn{font-size:11.5px;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--blue);white-space:nowrap;}
+.cheat-group{margin-bottom:18px;}
+.cheat-group h3{font-size:13.5px;color:var(--navy);margin:0 0 8px;text-transform:uppercase;letter-spacing:.02em;}
+.fc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.fc-tab{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12.5px;cursor:pointer;color:var(--ink);}
+.fc-tab.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600;}
+.fc-search{width:100%;padding:9px 14px;border-radius:8px;border:1px solid var(--line);font-size:13.5px;margin-bottom:14px;}
+.cf-crumbs{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.cf-crumbs span{cursor:pointer;color:var(--blue);}
+.cf-crumbs .cf-restart{cursor:pointer;color:var(--muted);text-decoration:underline;}
+.cf-card{max-width:720px;margin:0 auto;}
+.cf-hint{font-size:12.5px;color:var(--muted);margin:-6px 0 14px;}
+.cf-opt{display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;font-size:14.5px;color:var(--ink);font-weight:600;}
+.cf-opt:hover{border-color:var(--blue);background:var(--blue-light);}
+.cf-opt .cf-opt-sub{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:3px;}
+.cf-opt .cf-opt-note{display:block;font-weight:400;font-size:12px;color:var(--amber);margin-top:4px;}
+.cf-opt-unsure{border-style:dashed;color:var(--muted);font-weight:500;}
+.cf-issue-search{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);font-size:13.5px;margin-bottom:12px;}
+.cf-issue-list .cf-issue-item{padding:11px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:7px;cursor:pointer;background:#fff;}
+.cf-issue-item:hover{border-color:var(--blue);background:var(--blue-light);}
+.cf-issue-item .ii-title{font-weight:600;font-size:13.8px;}
+.cf-issue-item .ii-dev{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;margin-top:2px;}
+.cf-issue-empty{color:var(--muted);font-size:13.5px;padding:10px 2px;}
+.cf-search-everything{font-size:12.5px;margin-top:4px;}
+.cf-search-everything a{cursor:pointer;}
+.cf-step-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);font-weight:700;margin-bottom:6px;}
+.cf-outcome-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);}
+.cf-outcome-q{font-weight:700;color:var(--navy);font-size:15px;margin-bottom:10px;}
+.cf-outcome-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.btn.rma{background:var(--red);}
+.btn.resolved{background:var(--green);}
+.cf-rma-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;color:var(--muted);margin:14px 0 4px;}
+.cf-rma-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+.cf-rma-col h4{font-size:12.5px;margin:0 0 6px;}
+.cf-rma-col.ok h4{color:var(--green);}
+.cf-rma-col.review h4{color:var(--amber);}
+.cf-rma-col ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.5;}
+.topic-images{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.ti-fig{margin:0;width:150px;}
+.ti-fig img{width:100%;height:100px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:zoom-in;display:block;background:#f1f3f6;}
+.ti-fig figcaption{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.3;}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(10,20,35,.86);z-index:100;align-items:center;justify-content:center;padding:30px;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:100%;max-height:82vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.4);}
+.lightbox .lb-cap{color:#dce8f7;font-size:13px;margin-top:12px;max-width:640px;text-align:center;}
+.lightbox .lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;}
+
+/* ---------- RMA lookup (home) — scoped to #view-rma ---------- */
+#view-rma{--r-panel:#fff;--r-panel2:#f4f6f9;--r-border:var(--line);--r-accent:var(--blue);--r-accent2:var(--green);--r-warn:var(--amber);--r-danger:var(--red);}
+#view-rma .banner{background:var(--amber-bg);border:1px solid #f3dca6;color:#7a4e02;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:18px;line-height:1.4;}
+#view-rma .search-row{display:flex;gap:8px;position:relative;}
+#view-rma input[type=text]{flex:1;background:#fff;border:1px solid var(--r-border);color:var(--ink);padding:12px 14px;border-radius:8px;font-size:16px;outline:none;}
+#view-rma input[type=text]:focus{border-color:var(--r-accent);outline:2px solid var(--r-accent);outline-offset:-1px;}
+#view-rma .search-row button{background:var(--r-accent);color:#fff;border:none;padding:0 22px;border-radius:8px;font-weight:600;font-size:15px;cursor:pointer;}
+#view-rma .search-row button:hover{opacity:.92;}
+#view-rma .hint{color:var(--muted);font-size:12.5px;margin-top:6px;}
+#view-rma .suggestions{position:absolute;top:52px;left:0;right:100px;background:#fff;border:1px solid var(--r-border);border-radius:8px;max-height:260px;overflow:auto;z-index:10;display:none;box-shadow:0 10px 30px rgba(15,42,67,.14);}
+#view-rma .suggestions div{padding:9px 12px;cursor:pointer;font-size:13.5px;border-bottom:1px solid var(--r-border);display:flex;justify-content:space-between;gap:10px;}
+#view-rma .suggestions div:hover{background:var(--blue-light);}
+#view-rma .suggestions .tag{color:var(--muted);font-size:11px;border:1px solid var(--r-border);border-radius:5px;padding:0 5px;align-self:center;}
+#view-rma .status{margin-top:14px;color:var(--muted);font-size:13px;}
+#view-rma .resolved-from{margin-top:18px;background:var(--blue-light);border:1px solid #c9ddfb;border-radius:8px;padding:10px 14px;font-size:13px;color:#153a66;}
+#view-rma .resolved-from b{color:var(--navy);}
+#view-rma .flow-2col{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+#view-rma .flow-2col .side{flex:1;min-width:200px;display:flex;flex-direction:column;}
+#view-rma .arrow{color:var(--muted);font-size:1.1rem;}
+#view-rma .sn{font-family:var(--mono);font-weight:600;font-size:.95rem;}
+#view-rma .sn.old{color:var(--r-danger);}
+#view-rma .sn.new{color:var(--r-accent2);}
+#view-rma .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:2px;}
+#view-rma .section{margin-top:28px;}
+#view-rma .section h2{font-size:16px;color:var(--navy);margin:0 0 10px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+#view-rma .section h2 .count{color:var(--muted);font-weight:400;font-size:13.5px;}
+#view-rma .section h2 .chev{transition:transform .15s;color:var(--muted);font-size:12px;}
+#view-rma .section.collapsed h2 .chev{transform:rotate(-90deg);}
+#view-rma .section.collapsed .cards{display:none;}
+#view-rma .cards{display:flex;flex-direction:column;gap:10px;}
+#view-rma .card{background:#fff;border:1px solid var(--r-border);border-radius:8px;padding:12px 14px;font-size:13.5px;margin-bottom:0;}
+#view-rma .card .top-row{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+#view-rma .sheet-tag{color:var(--r-accent2);font-size:11.5px;font-weight:700;}
+#view-rma .sheet-tag.inv{background:var(--blue);color:#fff;border-radius:999px;padding:1px 8px;}
+#view-rma .date-tag{color:var(--muted);font-size:12.5px;}
+#view-rma .kv{display:grid;grid-template-columns:170px 1fr;gap:3px 10px;font-size:13px;}
+#view-rma .kv .k{color:var(--muted);}
+#view-rma .kv .v{word-break:break-word;white-space:pre-wrap;}
+#view-rma .kv .v.ess{color:var(--r-accent);font-weight:600;}
+#view-rma .kv .v.consign{color:var(--r-warn);font-weight:600;}
+#view-rma .kv .v.replacement{color:var(--r-accent2);font-weight:600;}
+#view-rma .empty{color:var(--muted);font-size:13.5px;font-style:italic;}
+#view-rma .no-results{margin-top:30px;color:var(--muted);text-align:center;padding:40px 0;}
+#view-rma .pii-tag{color:var(--amber);font-size:11px;border:1px solid #f3dca6;background:var(--amber-bg);border-radius:6px;padding:1px 6px;font-weight:600;}
+#view-rma .manifest{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+#view-rma .manifest-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--r-border);border-radius:8px;padding:10px 14px;font-size:13.5px;flex-wrap:wrap;}
+#view-rma .manifest-row .sn{color:var(--r-accent);cursor:pointer;}
+#view-rma .manifest-row .sn:hover{text-decoration:underline;}
+#view-rma .dir-in{color:var(--r-accent2);}
+#view-rma .dir-out{color:var(--r-warn);}
+#view-rma .manifest-row .meta{color:var(--muted);font-size:12.5px;margin-left:auto;}
+#view-rma .rma-foot{margin-top:50px;color:var(--muted);font-size:11.5px;text-align:center;}
+#view-rma .xlinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;}
+
+@media (max-width:860px){
+  .cf-rma-split{grid-template-columns:1fr;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .2s;}
+  .sidebar.open{transform:translateX(0);}
+  .menu-btn{display:inline-flex !important;}
+  .lib-layout{flex-direction:column;}
+  .lib-list{flex:none;width:100%;display:flex;flex-wrap:wrap;gap:6px;}
+  .lib-list .lib-cat{display:none;}
+  .branch-row{flex-direction:column;gap:2px;}
+  .branch-when{flex:none;}
+  #view-rma .kv{grid-template-columns:1fr;}
+  #view-rma .kv .k{margin-top:6px;}
+  .content{padding:18px 14px 50px;}
+}
+.menu-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:16px;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,42,67,.4);z-index:30;}
+.overlay.show{display:block;}
+@media print{.sidebar,.topbar,.menu-btn{display:none !important;}.content{padding:0;max-width:100%;}}
+</style>
+</head>
+<body>
+<div class="overlay" id="overlay"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="title">LG RMA Hub</div>
+      <div class="subtitle">RMA lookup, ticket flow &amp; troubleshooting</div>
+    </div>
+    <nav class="navlist" id="navlist"></nav>
+    <div class="sidebar-foot">Internal use only &middot; contains customer PII and proprietary troubleshooting content</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn">&#9776;</button>
+      <h1 id="viewTitle">RMA Lookup</h1>
+      <div class="search-wrap" id="searchWrap">
+        <span class="sic">&#128269;</span>
+        <input type="text" id="globalSearch" placeholder="Search symptoms, fault codes, devices&hellip;" autocomplete="off">
+        <div class="search-results" id="searchResults" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- ========== HOME: LG RMA lookup ========== -->
+      <div class="view active" id="view-rma">
+        <div class="page-title">&#128267; LG RMA</div>
+        <p class="page-sub">Search a battery serial number, an ESS case/RMA number (e.g. ESS11253), or a consignment/connote number (e.g. CFW63964337) to see its history — replacements, RMA/case records, call log entries, shipments and site details, pulled from Master Sheet.</p>
+        <div class="banner">&#9888; Internal use only. Results include customer names, phone numbers, emails and addresses. Do not share outside Omnidian without approval.</div>
+        <div class="search-row">
+          <input id="searchBox" type="text" placeholder="Serial, ESS number, or consignment (CFW...) number" autocomplete="off">
+          <button id="searchBtn">Search</button>
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <div class="hint">Accepts a battery serial (e.g. R15563P3SSEG11706157022), an ESS case number (e.g. ESS11253), or a consignment/connote number (e.g. CFW63964337).</div>
+        <div id="status" class="status">Loading data…</div>
+        <div id="results"></div>
+        <div class="xlinks">
+          <button class="btn secondary" data-goto="home">Troubleshoot a call</button>
+          <button class="btn secondary" data-goto="workflow">RMA &amp; Ticket Workflow</button>
+        </div>
+      </div>
+
+      <!-- ========== Troubleshooter views ========== -->
+      <div class="view" id="view-home"></div>
+      <div class="view" id="view-wizard"></div>
+      <div class="view" id="view-library"></div>
+      <div class="view" id="view-faultcodes"></div>
+      <div class="view" id="view-cheatsheet"></div>
+      <div class="view" id="view-workflow"></div>
+      <div class="view" id="view-contacts"></div>
+    </div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox">
+  <span class="lb-close">&times;</span>
+  <div class="lb-inner" style="display:flex;flex-direction:column;align-items:center;">
+    <img src="" alt="">
+    <div class="lb-cap"></div>
+  </div>
+</div>
+
+<!-- ===================== RMA LOOKUP SCRIPT ===================== -->
+<script>
+const FILES = ['cases.json','calls.json','shipments.json','compensation.json','homeowner.json','voltage.json','replacements.json','serials.json','ess_index.json','ess_numbers.json','consignment_index.json','consignment_numbers.json'];
+window.__lgRmaUnavailable = true;
+let RDATA = {};
+let byserial = {};
+let adj = {};
+let edgesBySerial = {};
+let allSerials = [];
+let allEss = [];
+let allConsignments = [];
+
+async function rmaLoadAll(){
+  const statusEl = document.getElementById('status');
+  if(window.__lgRmaUnavailable){
+    statusEl.textContent = 'RMA lookup is disabled in this public-safe copy; customer records are not included.';
+    document.getElementById('searchBox').disabled = true;
+    document.getElementById('searchBtn').disabled = true;
+    return;
+  }
+  try{
+    const OPTIONAL = new Set(['cases.json','calls.json','shipments.json']);
+    const missingOptional = [];
+    const results = await Promise.all(FILES.map(f => fetch('rma/' + f).then(r => {
+      if(!r.ok){
+        if(OPTIONAL.has(f)){ missingOptional.push(f); return []; }
+        throw new Error(f + ' failed to load (' + r.status + ')');
+      }
+      return r.json();
+    }).catch(err => {
+      if(OPTIONAL.has(f)){ missingOptional.push(f); return []; }
+      throw err;
+    })));
+    window.__rmaMissing = missingOptional;
+    FILES.forEach((f,i) => RDATA[f.replace('.json','')] = results[i]);
+  }catch(err){
+    statusEl.textContent = 'Failed to load data: ' + err.message;
+    return;
+  }
+  byserial.cases = indexBy(RDATA.cases, 'serial');
+  byserial.calls = indexBy(RDATA.calls, 'serial');
+  byserial.shipments = indexBy(RDATA.shipments, 'serial');
+  byserial.compensation = indexBy(RDATA.compensation, 'serial');
+  byserial.homeowner = indexBy(RDATA.homeowner, 'serial');
+  byserial.voltage = indexBy(RDATA.voltage, 'serial');
+  RDATA.replacements.forEach(e => {
+    addAdj(e.old, e.new);
+    addAdj(e.new, e.old);
+    (edgesBySerial[e.old] = edgesBySerial[e.old] || []).push(e);
+    (edgesBySerial[e.new] = edgesBySerial[e.new] || []).push(e);
+  });
+  allSerials = RDATA.serials;
+  allEss = RDATA.ess_numbers;
+  allConsignments = RDATA.consignment_numbers;
+  statusEl.textContent = 'Ready — ' + allSerials.length.toLocaleString() + ' serials, ' +
+    allEss.length.toLocaleString() + ' ESS case numbers, and ' + allConsignments.length.toLocaleString() +
+    ' consignment numbers indexed across ' +
+    (RDATA.cases.length + RDATA.calls.length + RDATA.shipments.length + RDATA.compensation.length + RDATA.homeowner.length + RDATA.voltage.length + RDATA.replacements.length).toLocaleString() + ' records.' +
+    (window.__rmaMissing && window.__rmaMissing.length ? ' Missing data files (results will be incomplete): ' + window.__rmaMissing.join(', ') + '.' : '');
+  const pending = document.getElementById('searchBox').value;
+  if(pending) doSearch(pending);
+}
+
+function indexBy(arr, key){
+  const m = new Map();
+  arr.forEach(rec => { const k = rec[key]; if(!k) return; if(!m.has(k)) m.set(k, []); m.get(k).push(rec); });
+  return m;
+}
+function addAdj(a,b){ if(!a || !b) return; (adj[a] = adj[a] || new Set()).add(b); }
+function norm(s){ return (s||'').trim().toUpperCase(); }
+function normEss(s){ return norm(s).replace(/[\s-]/g, ''); }
+function isEssLike(s){ return /^ESS\d+$/.test(normEss(s)); }
+function isConsignmentLike(s){ return /^CFW\d+$/.test(normEss(s)); }
+const CHAIN_MAX = 15;
+function directNeighbors(serial){ return Array.from(new Set([serial, ...(adj[serial] ? Array.from(adj[serial]) : [])])); }
+function findChain(serial){
+  if(!adj[serial]) return {nodes:[serial], truncated:false};
+  const seen = new Set([serial]);
+  const queue = [serial];
+  while(queue.length){
+    const cur = queue.shift();
+    const neighbors = adj[cur] || new Set();
+    for(const n of neighbors){
+      if(!seen.has(n)){
+        seen.add(n); queue.push(n);
+        if(seen.size > CHAIN_MAX) return {nodes: directNeighbors(serial), truncated: true};
+      }
+    }
+  }
+  return {nodes: Array.from(seen), truncated: false};
+}
+function parseDateMs(s){
+  if(!s) return -Infinity;
+  const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]).getTime();
+  return -Infinity;
+}
+function bestDate(rec){
+  return rec.reported_date || rec.date || rec.issue_date || rec.install_date ||
+         rec.rma_receive_date || rec.rma_received_date ||
+         rec.charge_date || rec.used_date || rec.ship_out_date || '';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const FIELD_LABELS = {
+  sheet:'Source sheet', ess_number:'ESS / case number', status:'Status', rma_number:'RMA number', install_date:'Install date',
+  issue_date:'Issue date', reported_date:'Reported date', rma_received_date:'RMA received date',
+  installer:'Installer', distributor:'Distributor', model:'Model', issue_symptom:'Symptom',
+  issue:'Issue', fault_code:'Fault code', analysis_date:'Analysis date', repaired_scrapped:'Repaired/Scrapped',
+  inverter:'Inverter', inverter_model:'Inverter model', customer:'Customer', problem:'Problem',
+  date_sent:'Date sent', refurb_status:'Refurb status', date_received:'Date received', location:'Location',
+  tat:'TAT (days)', comments:'Comments', rma_confirm:'RMA confirm', new_battery_send_date:'New battery send date',
+  faulty_battery_receive_date:'Faulty battery receive date', comment:'Comment', rma_receive_date:'RMA receive date',
+  call_taken_by:'Call taken by', type_call:'Call type', company:'Company', contact_name:'Contact name',
+  contact_number:'Contact number', email:'Email', ssg_job:'SSG job #', comments1:'Comments (1)', comments2:'Comments (2)',
+  direction:'Direction', date:'Date', notes:'Notes', category:'Category', warranty:'Warranty classification',
+  sourced_from:'Sourced from', pallet_no:'Pallet no.', warehouse:'Warehouse', sender:'Sender', job_number:'Job number',
+  rma_recall:'RMA/Recall', inbound_date:'Inbound date', voltage:'Voltage', rma_invoice_ref:'RMA/Invoice ref',
+  used_date:'Used date', mdm_code:'MDM code', part_description:'Part description', cqm_no:'CQM no.',
+  credited:'Credited', rma_no:'RMA no.', cell_lot:'Cell lot', country:'Country', ship_to_customer:'Ship to customer',
+  fault_description:'Fault description', fault_location:'Fault/battery location',
+  online_offline:'Online/Offline', purpose:'Purpose', electrode:'Electrode', ssg_comments:'SSG comments',
+  consignment_to:'Consignment to Mulgrave', consignment_from:'Consignment from Mulgrave',
+  inbound_consignment:'Inbound consignment', outbound_consignment:'Outbound consignment',
+  replacement_serial:'Replacement serial number',
+  customer_name:'Customer name', installer_name:'Installer name', mobile:'Mobile', rma_submission_date:'RMA submission date',
+  replaced_date:'Replaced date', battery_model:'Battery model', amount:'Compensation amount (AUD)',
+  rma_notes:'RMA notes', required_action:'Required action', solaredge_action:'SolarEdge action',
+  sw_version:'SW version', installer_email:'Installer email', installer_phone:'Installer phone', state:'State',
+  city:'City', inverter_serial:'Inverter serial', site_name:'Site name', site_address:'Site address',
+  homeowner_name:'Homeowner name', homeowner_email:'Homeowner email', phone_number:'Phone number',
+  connote:'Consignment/connote', cqm:'CQM', return_order:'Return order', sales_order:'Sales order',
+  label:'Label', final_faulty:'Final faulty reason', source:'Source', reason:'Reason', old_model:'Old model',
+  new_model:'New model', new_refur:'New / Refurb', invoice:'Invoice no.', note:'Note', charge_date:'Charge date',
+  new_unit_status:'Replacement unit status',
+};
+const CONSIGNMENT_FIELDS = new Set(['connote','consignment_to','consignment_from','inbound_consignment','outbound_consignment']);
+
+function renderKV(rec, skip){
+  skip = skip || [];
+  const rows = Object.keys(rec)
+    .filter(k => !skip.includes(k) && rec[k] !== '' && rec[k] != null)
+    .map(k => {
+      const cls = k==='ess_number' ? ' ess' : (k==='replacement_serial' ? ' replacement' : (CONSIGNMENT_FIELDS.has(k) ? ' consign' : ''));
+      return `<div class="k">${escapeHtml(FIELD_LABELS[k]||k)}</div><div class="v${cls}">${escapeHtml(rec[k])}</div>`;
+    }).join('');
+  return `<div class="kv">${rows}</div>`;
+}
+function card(rec){
+  const date = bestDate(rec);
+  return `<div class="card">
+    <div class="top-row"><span class="sheet-tag">${escapeHtml(rec.sheet||'')}</span><span class="date-tag">${escapeHtml(date||'')}</span></div>
+    ${renderKV(rec, ['sheet','serial'])}
+  </div>`;
+}
+function caseCard(r){
+  const serial = r.serial;
+  const date = bestDate(r);
+  const thisMs = parseDateMs(date);
+  let backwardHtml = '';
+  if(isFinite(thisMs)){
+    const prior = (edgesBySerial[serial]||[])
+      .filter(e => e.new===serial && isFinite(parseDateMs(e.date)) && parseDateMs(e.date) < thisMs)
+      .sort((a,b)=> parseDateMs(b.date) - parseDateMs(a.date));
+    if(prior.length){
+      const e = prior[0];
+      backwardHtml = `<div class="hint" style="margin:6px 0;">↳ This unit was itself issued as the replacement for <strong style="color:var(--ink);font-family:var(--mono);">${escapeHtml(e.old)}</strong>${e.ess_number?` (${escapeHtml(e.ess_number)})`:''} on ${escapeHtml(e.date)}.</div>`;
+    }
+  }
+  let replHtml = '';
+  const rs = r.replacement_serial;
+  if(rs){
+    if(isSerialLikeJS(rs)){
+      replHtml = `<div class="flow-2col" style="margin:10px 0 2px;"><span class="arrow">→</span><div class="side">
+          <span class="lbl">Replacement serial</span><span class="sn new">${escapeHtml(rs)}</span>
+          ${r.new_unit_status?`<div class="hint" style="margin-top:2px;">${escapeHtml(r.new_unit_status)}</div>`:''}
+          ${laterFaultNote(rs, date)}
+        </div></div>`;
+    } else {
+      replHtml = `<div class="flow-2col" style="margin:10px 0 2px;"><span class="arrow">→</span><div class="side">
+          <span class="lbl">Outcome</span><span class="sn" style="color:var(--muted);">${escapeHtml(rs)}</span>
+          <div class="hint" style="margin-top:2px;">No physical replacement serial was recorded for this case.</div>
+        </div></div>`;
+    }
+  }
+  const componentBadge = r.component_type==='inverter' ? '<span class="sheet-tag inv">⚡ Inverter (LG5048)</span>' : '';
+  return `<div class="card">
+    <div class="top-row"><span class="sheet-tag">${escapeHtml(r.sheet||'')}</span>${componentBadge}<span class="date-tag">${escapeHtml(date||'')}</span></div>
+    <div><span class="lbl">Faulty serial</span><span class="sn old" style="font-size:.9rem;">${escapeHtml(serial)}</span>
+      ${r.repaired_scrapped?`<div class="hint" style="margin-top:2px;">Repaired/Scrapped: <strong style="color:var(--ink);">${escapeHtml(r.repaired_scrapped)}</strong></div>`:''}
+    </div>
+    ${backwardHtml}${replHtml}
+    ${renderKV(r, ['sheet','serial','repaired_scrapped','replacement_serial','new_unit_status','component_type'])}
+  </div>`;
+}
+function section(id, title, items, renderer){
+  if(!items || items.length===0){
+    return `<div class="section"><h2><span class="chev">▾</span>${title} <span class="count">(0)</span></h2>
+      <div class="cards"><div class="empty">No records found.</div></div></div>`;
+  }
+  return `<div class="section" id="sec-${id}">
+    <h2 onclick="toggleSection('${id}')"><span class="chev">▾</span>${title} <span class="count">(${items.length})</span></h2>
+    <div class="cards">${items.map(renderer).join('')}</div>
+  </div>`;
+}
+function toggleSection(id){ document.getElementById('sec-'+id).classList.toggle('collapsed'); }
+function isSerialLikeJS(s){ if(!s) return false; s = String(s).trim(); return s.length >= 8 && /\d/.test(s); }
+function laterFaultNote(serial, afterDateStr){
+  const afterMs = parseDateMs(afterDateStr);
+  if(!isFinite(afterMs)) return '';
+  const rows = (byserial.cases.get(serial) || [])
+    .filter(r => parseDateMs(bestDate(r)) > afterMs)
+    .sort((a,b)=> parseDateMs(bestDate(a)) - parseDateMs(bestDate(b)));
+  if(!rows.length) return '';
+  const r = rows[0];
+  const essTxt = r.ess_number ? ` under ${escapeHtml(r.ess_number)}` : '';
+  const dateTxt = bestDate(r) ? ` on ${escapeHtml(bestDate(r))}` : '';
+  return `<div class="hint" style="margin-top:2px;">↳ Later reported faulty${essTxt}${dateTxt}${r.repaired_scrapped?` (Repaired/Scrapped: ${escapeHtml(r.repaired_scrapped)})`:''}.</div>`;
+}
+function renderManifest(cnum, movements){
+  const sorted = movements.slice().sort((a,b)=> parseDateMs(a.date) - parseDateMs(b.date));
+  let html = `<div class="resolved-from">Consignment <b>${escapeHtml(cnum)}</b> — ${sorted.length} movement${sorted.length===1?'':'s'} across ${new Set(sorted.map(m=>m.serial)).size} distinct serial(s).</div>`;
+  html += '<div class="manifest">';
+  sorted.forEach(m => {
+    const dirClass = /outbound/i.test(m.direction) ? 'dir-out' : (/inbound/i.test(m.direction) ? 'dir-in' : '');
+    html += `<div class="manifest-row">
+      <span class="sn" data-pick="${escapeHtml(m.serial||'')}">${escapeHtml(m.serial||'(unknown serial)')}</span>
+      <span class="${dirClass}">${escapeHtml(m.direction||'')}</span>
+      <span class="meta">${escapeHtml(m.sheet||'')}${m.date? ' &middot; ' + escapeHtml(m.date) : ''}</span>
+    </div>`;
+  });
+  html += '</div><div class="hint" style="margin-top:10px;">Click a serial above to open its full battery life view.</div>';
+  return html;
+}
+function doSearch(raw){
+  raw = (raw || '').trim();
+  const resultsEl = document.getElementById('results');
+  if(!raw){ resultsEl.innerHTML=''; return; }
+  if(!RDATA.cases){ return; } // still loading; rmaLoadAll re-runs the pending search
+  if(isConsignmentLike(raw)){
+    const cnum = normEss(raw);
+    const movements = RDATA.consignment_index[cnum];
+    if(!movements || !movements.length){
+      resultsEl.innerHTML = `<div class="no-results">No movements found for consignment <strong>${escapeHtml(raw)}</strong>.</div>`;
+      return;
+    }
+    resultsEl.innerHTML = renderManifest(cnum, movements);
+    return;
+  }
+  let resolvedNote = '';
+  let searchSerials = [];
+  if(isEssLike(raw)){
+    const essKey = normEss(raw);
+    const matches = RDATA.ess_index[essKey];
+    if(!matches || !matches.length){
+      resultsEl.innerHTML = `<div class="no-results">No case found for ESS number <strong>${escapeHtml(raw)}</strong>.</div>`;
+      return;
+    }
+    searchSerials = matches;
+    resolvedNote = `<div class="resolved-from">Resolved ESS case <b>${escapeHtml(essKey)}</b> to batter${matches.length>1?'ies':'y'}: <b>${matches.map(escapeHtml).join(', ')}</b></div>`;
+  } else {
+    searchSerials = [norm(raw)];
+  }
+  let chainSet = new Set();
+  let chainTruncated = false;
+  searchSerials.forEach(s => { const r = findChain(s); r.nodes.forEach(x => chainSet.add(x)); if(r.truncated) chainTruncated = true; });
+  searchSerials.forEach(s => chainSet.add(s));
+  const chain = Array.from(chainSet);
+  const inAnything = chain.some(s => byserial.cases.has(s) || byserial.calls.has(s) || byserial.shipments.has(s) ||
+    byserial.compensation.has(s) || byserial.homeowner.has(s) || byserial.voltage.has(s)) || chain.some(s => adj[s]);
+  if(!inAnything){
+    resultsEl.innerHTML = resolvedNote + `<div class="no-results">No records found for <strong>${escapeHtml(raw)}</strong>.<br>Check the serial/ESS/consignment format, or pick a suggestion from the search box.</div>`;
+    return;
+  }
+  const collect = (cat) => {
+    let out = [];
+    chain.forEach(s => { if(byserial[cat].has(s)) out = out.concat(byserial[cat].get(s)); });
+    out.sort((a,b)=> parseDateMs(bestDate(b)) - parseDateMs(bestDate(a)));
+    return out;
+  };
+  let html = resolvedNote;
+  if(chainTruncated){
+    html += `<div class="hint" style="margin:12px 0 8px;">Note: one of these serials is referenced as a replacement in an unusually large number of separate cases (likely a reused/shared unit). Showing direct replacements only, rather than the full transitive history, to keep this focused.</div>`;
+  }
+  html += section('cases', 'RMA / case history', collect('cases'), r => caseCard(r));
+  html += section('calls', 'Call log entries', collect('calls'), r => card(r));
+  html += section('shipments', 'Shipping & stock movements', collect('shipments'), r => card(r));
+  html += section('comp', 'Compensation', collect('compensation'), r => card(r));
+  html += section('home', 'Homeowner & site details <span class="pii-tag">PII</span>', collect('homeowner'), r => card(r));
+  html += section('volt', 'Voltage checks', collect('voltage'), r => card(r));
+  resultsEl.innerHTML = html;
+}
+function selectSuggestion(s){
+  document.getElementById('searchBox').value = s;
+  document.getElementById('suggestions').style.display='none';
+  doSearch(s);
+}
+document.getElementById('searchBtn').addEventListener('click', () => doSearch(document.getElementById('searchBox').value));
+document.getElementById('searchBox').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ document.getElementById('suggestions').style.display='none'; doSearch(e.target.value); }
+});
+document.getElementById('searchBox').addEventListener('input', e => {
+  const v = norm(e.target.value);
+  const vStripped = v.replace(/[\s-]/g,'');
+  const sugBox = document.getElementById('suggestions');
+  if(v.length < 3 || !allSerials.length){ sugBox.style.display='none'; return; }
+  const matches = [];
+  for(let i=0;i<allEss.length && matches.length<4;i++){ if(allEss[i].includes(vStripped)) matches.push({v:allEss[i], tag:'ESS'}); }
+  for(let i=0;i<allConsignments.length && matches.length<7;i++){ if(allConsignments[i].includes(vStripped)) matches.push({v:allConsignments[i], tag:'Consignment'}); }
+  for(let i=0;i<allSerials.length && matches.length<9;i++){ if(allSerials[i].includes(v)) matches.push({v:allSerials[i], tag:'Serial'}); }
+  if(!matches.length){ sugBox.style.display='none'; return; }
+  sugBox.innerHTML = matches.map(m => `<div data-pick="${escapeHtml(m.v)}"><span>${escapeHtml(m.v)}</span><span class="tag">${m.tag}</span></div>`).join('');
+  sugBox.style.display='block';
+});
+document.getElementById('view-rma').addEventListener('click', e => {
+  const p = e.target.closest('[data-pick]');
+  if(p && p.dataset.pick) selectSuggestion(p.dataset.pick);
+});
+document.addEventListener('click', e => {
+  if(e.target.id !== 'searchBox') document.getElementById('suggestions').style.display='none';
+});
+rmaLoadAll();
+</script>
+
+<!-- ===================== TROUBLESHOOTER SCRIPT ===================== -->
+<script>
+let DATA = null;
+const state = { view: 'rma', wizardPath: [], wizardNode: null, libDevice: null, fcSystem: 'sma', fcQuery: '' };
+let cfIssueListCache = [];
+
+const NAV = [
+  {group:'RMA'},
+  {id:'rma', label:'RMA Lookup', ic:'&#128267;'},
+  {group:'Ticket flow'},
+  {id:'workflow', label:'RMA &amp; Ticket Workflow', ic:'&#128203;'},
+  {id:'contacts', label:'Escalation Contacts', ic:'&#9742;'},
+  {group:'Troubleshooting'},
+  {id:'home', label:'Troubleshoot a Call', ic:'&#128222;'},
+  {id:'wizard', label:'Guided Troubleshooter', ic:'&#129504;'},
+  {id:'library', label:'Device Reference Library', ic:'&#128218;'},
+  {id:'faultcodes', label:'Fault Code Lookup', ic:'&#128269;'},
+  {id:'cheatsheet', label:'Quick-Reference Cheat Sheet', ic:'&#9889;'},
+];
+const VIEWS = NAV.filter(n=>n.id);
+
+function esc(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function rmaBadge(rma){
+  if(!rma || rma==='no') return '<span class="badge badge-rma-no">Not an RMA</span>';
+  if(rma==='yes') return '<span class="badge badge-rma-yes">Usually leads to RMA</span>';
+  return '<span class="badge badge-rma-conditional">May lead to RMA</span>';
+}
+
+/* ---------------- Navigation / routing ---------------- */
+function renderNav(){
+  const el = document.getElementById('navlist');
+  el.innerHTML = NAV.map(n => n.group
+    ? `<div class="navgroup">${n.group}</div>`
+    : `<div class="navlink${state.view===n.id?' active':''}" data-view="${n.id}"><span class="ic">${n.ic}</span><span>${n.label}</span></div>`).join('');
+  el.querySelectorAll('.navlink').forEach(n => n.addEventListener('click', () => goTo(n.dataset.view)));
+}
+function goTo(view){
+  if(!VIEWS.find(n=>n.id===view)) view = 'rma';
+  state.view = view;
+  if(view === 'wizard' && state.wizardPath.length===0 && DATA){ state.wizardNode = DATA.wizard.start; }
+  if(location.hash !== '#'+view) history.replaceState(null, '', '#'+view);
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  const navEntry = VIEWS.find(n=>n.id===view);
+  document.getElementById('viewTitle').textContent = navEntry.label.replace('&amp;','&');
+  document.getElementById('searchWrap').classList.toggle('hidden', view==='rma');
+  renderNav();
+  renderView(view);
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  window.scrollTo(0,0);
+}
+function renderView(view){
+  if(view==='rma') return;
+  if(!DATA){
+    document.getElementById('view-'+view).innerHTML = '<div class="card">Loading troubleshooting data…</div>';
+    return;
+  }
+  if(view==='home') renderHome();
+  else if(view==='wizard') renderWizard();
+  else if(view==='library') renderLibrary();
+  else if(view==='faultcodes') renderFaultCodes();
+  else if(view==='cheatsheet') renderCheatSheet();
+  else if(view==='workflow') renderWorkflow();
+  else if(view==='contacts') renderContacts();
+}
+
+/* ---------------- Troubleshoot a call: guided call flow ---------------- */
+function cfReset(){
+  state.cf = { step:'entry', nodeId:null, deviceIds:[], crumbs:[], issueQuery:'', activeDeviceId:null, activeTopicIndex:null, outcome:null };
+}
+if(!state.cf) cfReset();
+function cfSnapshot(){ return JSON.parse(JSON.stringify(state.cf)); }
+function cfPush(label, patch){
+  state.cf.crumbs.push({label: label, snapshot: cfSnapshot()});
+  Object.assign(state.cf, patch);
+  renderHome();
+}
+function cfBackTo(i){ state.cf = state.cf.crumbs[i].snapshot; renderHome(); }
+function cfRestart(){ cfReset(); renderHome(); }
+function cfCrumbsHtml(){
+  if(!state.cf.crumbs.length) return '';
+  const crumbs = state.cf.crumbs.map((c,i)=>`<span data-cfidx="${i}">${esc(c.label)}</span>`).join(' &rsaquo; ');
+  return `<div class="cf-crumbs">${crumbs} &nbsp;&middot;&nbsp; <span class="cf-restart" data-cfrestart="1">Start over</span></div>`;
+}
+function cfIssuePool(){
+  const pool = [];
+  state.cf.deviceIds.forEach(devId=>{
+    const dev = DATA.devices.find(d=>d.id===devId);
+    if(!dev) return;
+    dev.topics.forEach((t,i)=>{ pool.push({deviceId:dev.id, deviceName:dev.name, topicIndex:i, topic:t}); });
+  });
+  return pool;
+}
+function renderHome(){
+  const root = document.getElementById('view-home');
+  const cf = state.cf;
+  let html = `<div class="page-title">Troubleshoot a call</div>
+    <p class="page-sub">Work through the questions below to get from "what's wrong" to a checklist and an RMA decision. Other reference material (full library, fault codes, cheat sheet, workflow, contacts) is always available from the side menu.</p>
+    <div class="cf-card card">`;
+  html += cfCrumbsHtml();
+  if(cf.step==='entry'){
+    html += renderCfOptions(DATA.callFlow.entry.prompt, null, DATA.callFlow.entry.options, 'entry');
+  } else if(cf.step==='node'){
+    const node = DATA.callFlow.nodes[cf.nodeId];
+    if(node.type==='fallback') html += renderCfFallback(node);
+    else html += renderCfOptions(node.prompt, node.hint, node.options.slice(), node.type, node.fallback);
+  } else if(cf.step==='issue'){
+    html += renderCfIssueSelect();
+  } else if(cf.step==='checklist'){
+    html += renderCfChecklist();
+  } else if(cf.step==='outcome'){
+    html += renderCfOutcome();
+  }
+  html += `</div>`;
+  root.innerHTML = html;
+  wireCfEvents();
+}
+function renderCfOptions(prompt, hint, options, nodeType, fallbackId){
+  let html = `<div class="wiz-q">${esc(prompt)}</div>`;
+  if(hint) html += `<div class="cf-hint">${esc(hint)}</div>`;
+  options.forEach(opt=>{
+    html += `<button class="cf-opt" data-cfopt="1" data-opt='${esc(JSON.stringify(opt))}' data-nodetype="${esc(nodeType)}">
+      ${esc(opt.label)}
+      ${opt.sublabel?`<span class="cf-opt-sub">${esc(opt.sublabel)}</span>`:''}
+      ${opt.note?`<span class="cf-opt-note">${esc(opt.note)}</span>`:''}
+    </button>`;
+  });
+  if(fallbackId) html += `<button class="cf-opt cf-opt-unsure" data-cffallback="${esc(fallbackId)}">None of these / not sure</button>`;
+  return html;
+}
+function renderCfFallback(node){
+  let html = `<div class="wiz-q">${esc(node.prompt)}</div><div class="page-sub" style="margin:0 0 14px;">${esc(node.message)}</div><div class="wiz-actions">`;
+  node.actions.forEach(a=>{ html += `<button class="btn secondary" data-cfaction="${esc(a.view)}">${esc(a.label)}</button>`; });
+  return html + `</div>`;
+}
+function renderCfIssueSelect(){
+  const pool = cfIssuePool();
+  const q = (state.cf.issueQuery||'').trim().toLowerCase();
+  const terms = q.split(/\s+/).filter(Boolean);
+  const filtered = pool.filter(p=>{
+    if(!terms.length) return true;
+    const hay = [p.topic.title,(p.topic.tags||[]).join(' '),(p.topic.steps||[]).join(' ')].join(' ').toLowerCase();
+    return terms.every(t=>hay.includes(t));
+  });
+  let html = `<div class="wiz-q">What best describes the issue?</div>`;
+  html += `<input type="text" class="cf-issue-search" id="cfIssueSearch" placeholder="Type to filter, e.g. &quot;blown fuse&quot;, &quot;blinking&quot;, &quot;error 29&quot;&hellip;" value="${esc(state.cf.issueQuery)}">`;
+  html += `<div class="cf-search-everything">Can't find it here? <a data-cfsearchall="1">Search the entire tool instead</a>.</div>`;
+  html += `<div class="cf-issue-list" style="margin-top:12px;">`;
+  if(filtered.length===0){
+    html += `<div class="cf-issue-empty">No matching issue in this device's guide. Try a different word, or search everything above.</div>`;
+  } else {
+    filtered.forEach((p,i)=>{
+      html += `<div class="cf-issue-item" data-cfissue="${i}"><div class="ii-title">${esc(p.topic.title)}</div><div class="ii-dev">${esc(p.deviceName)}</div></div>`;
+    });
+  }
+  html += `</div>`;
+  cfIssueListCache = filtered;
+  return html;
+}
+function renderCfChecklist(){
+  const dev = DATA.devices.find(d=>d.id===state.cf.activeDeviceId);
+  const topic = dev.topics[state.cf.activeTopicIndex];
+  let html = `<div class="cf-step-label">Checklist</div>`;
+  html += `<div class="wiz-result-title">${esc(topic.title)}</div>`;
+  html += `<div class="wiz-result-summary">${esc(dev.name)}</div>`;
+  html += renderTopicBody(topic);
+  html += `<div class="cf-outcome-box">
+    <div class="cf-outcome-q">Is the issue resolved, or does this need an RMA?</div>
+    <div class="cf-outcome-actions">
+      <button class="btn resolved" data-cfoutcome="resolved">Resolved on this call</button>
+      <button class="btn rma" data-cfoutcome="rma">Still faulty — raise RMA</button>
+    </div>
+  </div>`;
+  return html;
+}
+function cfRmaRowSplit(topic){
+  const rows = (topic.faultCodeTable||[]).map(r=>({situation:`${r.code} — ${r.name}`, decision:r.rmaDecision}))
+    .concat((topic.generalRmaTable||[]).map(r=>({situation:r.situation, decision:r.decision})));
+  if(!rows.length) return null;
+  const ok = rows.filter(r=>/^yes/i.test(r.decision||''));
+  const review = rows.filter(r=>!/^yes/i.test(r.decision||''));
+  if(!ok.length && !review.length) return null;
+  return {ok, review};
+}
+function renderCfOutcome(){
+  const cf = state.cf;
+  if(cf.outcome==='resolved'){
+    let html = `<div class="cf-step-label">Resolved</div><div class="wiz-result-title">No RMA needed</div>`;
+    html += `<div class="note-box">${esc(DATA.callFlow.resolvedMessage)}</div>`;
+    html += `<div class="wiz-actions"><button class="btn secondary" data-cfrestart="1">Start a new lookup</button></div>`;
+    return html;
+  }
+  const dev = DATA.devices.find(d=>d.id===cf.activeDeviceId);
+  const topic = dev.topics[cf.activeTopicIndex];
+  let html = `<div class="cf-step-label">RMA guidance</div><div class="wiz-result-title">${esc(topic.title)}</div>`;
+  const split = cfRmaRowSplit(topic);
+  if(split && (split.ok.length || split.review.length)){
+    html += `<div class="cf-rma-label">Specific guidance — from this guide's own fault-code / RMA matrix</div>`;
+    html += `<div class="cf-rma-split">
+      <div class="cf-rma-col ok"><h4>&#9989; Self-approved — raise RMA now</h4><ul>${split.ok.map(r=>`<li><strong>${esc(r.situation)}</strong> — ${esc(r.decision)}</li>`).join('') || '<li>None in this list.</li>'}</ul></div>
+      <div class="cf-rma-col review"><h4>&#9203; Needs review / escalation first</h4><ul>${split.review.map(r=>`<li><strong>${esc(r.situation)}</strong> — ${esc(r.decision)}</li>`).join('') || '<li>None in this list.</li>'}</ul></div>
+    </div>`;
+  } else if(topic.rma==='yes'){
+    html += `<div class="cf-rma-label">Specific guidance — from this topic</div>`;
+    html += `<div class="note-box">This topic's guidance says this symptom usually leads to an RMA${topic.warning?': '+esc(topic.warning):'.'}</div>`;
+    html += `<div class="cf-rma-label" style="margin-top:14px;">General process guidance</div><div class="note-box">${esc(DATA.callFlow.genericRmaGuidance)}</div>`;
+  } else if(topic.rma==='conditional'){
+    html += `<div class="cf-rma-label">Specific guidance — from this topic</div>`;
+    html += `<div class="note-box">This one is conditional — re-check the decision tree / notes above for the exact threshold before deciding self-approve vs. escalate.</div>`;
+    html += `<div class="cf-rma-label" style="margin-top:14px;">General process guidance</div><div class="note-box">${esc(DATA.callFlow.genericRmaGuidance)}</div>`;
+  } else {
+    html += `<div class="cf-rma-label">General process guidance (no specific self-approval ruling for this topic)</div><div class="note-box">${esc(DATA.callFlow.genericRmaGuidance)}</div>`;
+  }
+  html += `<div class="wiz-actions">
+    <button class="btn secondary" data-cfaction="workflow">Open full RMA &amp; Ticket Workflow</button>
+    <button class="btn secondary" data-cfaction="rma">Look up the serial / ESS in RMA Lookup</button>
+    <button class="btn secondary" data-cfrestart="1">Start a new lookup</button>
+  </div>`;
+  return html;
+}
+function wireCfEvents(){
+  document.querySelectorAll('[data-cfidx]').forEach(el=>el.addEventListener('click', ()=>cfBackTo(parseInt(el.dataset.cfidx,10))));
+  document.querySelectorAll('[data-cfrestart]').forEach(el=>el.addEventListener('click', cfRestart));
+  document.querySelectorAll('[data-cfaction]').forEach(el=>el.addEventListener('click', ()=>goTo(el.dataset.cfaction)));
+  document.querySelectorAll('[data-cffallback]').forEach(el=>el.addEventListener('click', ()=>{
+    cfPush('Not sure', {step:'node', nodeId: el.dataset.cffallback});
+  }));
+  document.querySelectorAll('[data-cfopt]').forEach(el=>el.addEventListener('click', ()=>{
+    const opt = JSON.parse(el.dataset.opt);
+    const nodeType = el.dataset.nodetype;
+    if(nodeType==='entry' || nodeType==='choice'){
+      cfPush(opt.label, {step:'node', nodeId: opt.next});
+    } else if(nodeType==='model-select'){
+      const devIds = (opt.deviceIds||[]).concat(opt.extraDeviceIds||[]);
+      if(opt.askPairing) cfPush(opt.label, {step:'node', nodeId:'pairing', deviceIds: devIds});
+      else cfPush(opt.label, {step:'issue', deviceIds: devIds});
+    } else if(nodeType==='pairing'){
+      cfPush(opt.label, {step:'issue', deviceIds: state.cf.deviceIds.concat(opt.deviceIds||[])});
+    }
+  }));
+  const issueSearch = document.getElementById('cfIssueSearch');
+  if(issueSearch){
+    issueSearch.addEventListener('input', ()=>{
+      state.cf.issueQuery = issueSearch.value;
+      renderHome();
+      const el = document.getElementById('cfIssueSearch');
+      el.focus(); el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }
+  document.querySelectorAll('[data-cfissue]').forEach(el=>el.addEventListener('click', ()=>{
+    const p = cfIssueListCache[parseInt(el.dataset.cfissue,10)];
+    cfPush(p.topic.title, {step:'checklist', activeDeviceId:p.deviceId, activeTopicIndex:p.topicIndex});
+  }));
+  document.querySelectorAll('[data-cfsearchall]').forEach(el=>el.addEventListener('click', ()=>{
+    const box = document.getElementById('globalSearch');
+    box.value = state.cf.issueQuery || '';
+    box.focus();
+    runSearch(box.value);
+  }));
+  document.querySelectorAll('[data-cfoutcome]').forEach(el=>el.addEventListener('click', ()=>{
+    cfPush(el.dataset.cfoutcome==='resolved'?'Resolved':'Not resolved', {step:'outcome', outcome: el.dataset.cfoutcome});
+  }));
+  wireLightbox();
+}
+
+/* ---------------- Wizard ---------------- */
+function renderWizard(){
+  if(!state.wizardNode) state.wizardNode = DATA.wizard.start;
+  const node = DATA.wizard.nodes[state.wizardNode];
+  const crumbs = state.wizardPath.map((p,i)=>`<span data-idx="${i}">${esc(p.label)}</span>`).join(' &rsaquo; ');
+  let html = `<div class="page-title">Guided Troubleshooter</div><p class="page-sub">Answer a few questions to get to the right next step. This doesn't replace judgement — use it as a quick-start path.</p>`;
+  html += `<div class="wiz-card card">`;
+  if(state.wizardPath.length) html += `<div class="wiz-crumbs">${crumbs} &nbsp;&middot;&nbsp; <span data-restart="1">Start over</span></div>`;
+  if(node.type === 'question'){
+    html += `<div class="wiz-q">${esc(node.question)}</div>`;
+    node.options.forEach(opt=>{ html += `<button class="wiz-opt" data-next="${opt.next}" data-label="${esc(opt.label)}">${esc(opt.label)}</button>`; });
+  } else {
+    html += `${rmaBadge(node.rma)}<div class="wiz-result-title" style="margin-top:8px;">${esc(node.title)}</div>`;
+    html += `<div class="wiz-result-summary">${esc(node.summary)}</div>`;
+    if(node.warning) html += `<div class="warning-box">&#9888;&nbsp; ${esc(node.warning)}</div>`;
+    if(node.steps && node.steps.length) html += `<ul class="step-list">${node.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
+    if(node.seeAlso && node.seeAlso.length){
+      html += `<div class="pill-row" style="margin-top:14px;">`;
+      node.seeAlso.forEach(sa=>{ html += `<span class="pill" style="cursor:pointer;" data-seealso="${esc(sa)}">&#128218; ${esc(sa.split('/')[0])}</span>`; });
+      html += `</div>`;
+    }
+    html += `<div class="wiz-actions"><button class="btn secondary" data-restart="1">Start over</button></div>`;
+  }
+  html += `</div>`;
+  document.getElementById('view-wizard').innerHTML = html;
+  document.querySelectorAll('.wiz-opt').forEach(b=>b.addEventListener('click', ()=>{
+    state.wizardPath.push({label:b.dataset.label, node:state.wizardNode});
+    state.wizardNode = b.dataset.next;
+    renderWizard();
+  }));
+  document.querySelectorAll('[data-restart]').forEach(b=>b.addEventListener('click', ()=>{
+    state.wizardPath = []; state.wizardNode = DATA.wizard.start; renderWizard();
+  }));
+  document.querySelectorAll('[data-idx]').forEach(b=>b.addEventListener('click', ()=>{
+    const idx = parseInt(b.dataset.idx,10);
+    state.wizardNode = state.wizardPath[idx].node;
+    state.wizardPath = state.wizardPath.slice(0, idx);
+    renderWizard();
+  }));
+  document.querySelectorAll('[data-seealso]').forEach(b=>b.addEventListener('click', ()=>{
+    const [devId, topicTitle] = b.dataset.seealso.split('/');
+    goTo('library');
+    openLibraryDevice(devId, topicTitle);
+  }));
+}
+
+/* ---------------- Device library ---------------- */
+function renderLibrary(initialDevice){
+  const cats = {};
+  DATA.devices.forEach(d=>{ (cats[d.category] = cats[d.category]||[]).push(d); });
+  if(!state.libDevice) state.libDevice = (initialDevice || DATA.devices[0].id);
+  let listHtml = '';
+  Object.keys(cats).forEach(cat=>{
+    listHtml += `<div class="lib-cat">${esc(cat)}</div>`;
+    cats[cat].forEach(d=>{ listHtml += `<div class="lib-item${state.libDevice===d.id?' active':''}" data-dev="${d.id}">${esc(d.name)}</div>`; });
+  });
+  const dev = DATA.devices.find(d=>d.id===state.libDevice);
+  let detailHtml = `<div class="page-title">${esc(dev.name)}</div><p class="page-sub">${esc(dev.summary)}</p>`;
+  dev.topics.forEach((t,i)=>{ detailHtml += renderTopicBlock(t, `${dev.id}-${i}`); });
+  document.getElementById('view-library').innerHTML = `<div class="lib-layout"><div class="lib-list">${listHtml}</div><div class="lib-detail">${detailHtml}</div></div>`;
+  document.querySelectorAll('.lib-item').forEach(li=>li.addEventListener('click', ()=>{ state.libDevice = li.dataset.dev; renderLibrary(); }));
+  wireTopicToggles();
+}
+function renderTopicImages(t){
+  if(!t.images || !t.images.length) return '';
+  return `<div class="topic-images">${t.images.map(im=>`<figure class="ti-fig" data-lightbox="${esc(im.src)}" data-caption="${esc(im.caption)}"><img src="${esc(im.src)}" alt="${esc(im.caption)}" loading="lazy"><figcaption>${esc(im.caption)}</figcaption></figure>`).join('')}</div>`;
+}
+function renderTopicBody(t){
+  let body = '';
+  if(t.steps && t.steps.length) body += `<ul class="step-list">${t.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
+  body += renderTopicImages(t);
+  if(t.decisionTree){
+    body += `<div class="decision-box"><div class="dq">${esc(t.decisionTree.question)}</div>`;
+    t.decisionTree.branches.forEach(b=>{
+      body += `<div class="branch-row"><div class="branch-when">${esc(b.when)}</div><div class="branch-result">${esc(b.result)} ${b.rma?rmaBadge(b.rma):''}</div></div>`;
+    });
+    body += `</div>`;
+  }
+  if(t.faultCodeTable){
+    body += `<table class="ftable"><tr><th>Code</th><th>Name</th><th>Issue</th><th>Action</th><th>RMA decision</th></tr>`;
+    t.faultCodeTable.forEach(r=>{
+      body += `<tr><td><span class="code-chip">${esc(r.code)}</span></td><td>${esc(r.name)}</td><td>${esc(r.issue)}</td><td>${esc(r.action)}</td><td>${esc(r.rmaDecision)}</td></tr>`;
+    });
+    body += `</table>`;
+  }
+  if(t.generalRmaTable){
+    body += `<table class="ftable" style="margin-top:14px;"><tr><th>Situation</th><th>Decision</th></tr>`;
+    t.generalRmaTable.forEach(r=>{ body += `<tr><td>${esc(r.situation)}</td><td>${esc(r.decision)}</td></tr>`; });
+    body += `</table>`;
+  }
+  if(t.notes && t.notes.length) t.notes.forEach(n=> body += `<div class="note-box">${esc(n)}</div>`);
+  if(t.warning) body += `<div class="warning-box">&#9888;&nbsp; ${esc(t.warning)}</div>`;
+  if(t.rma) body += `<div style="margin-top:12px;">${rmaBadge(t.rma)}</div>`;
+  const tagsHtml = t.tags ? `<div class="pill-row">${t.tags.map(tag=>`<span class="pill">${esc(tag)}</span>`).join('')}</div>` : '';
+  return tagsHtml + body;
+}
+function renderTopicBlock(t, key){
+  return `<div class="topic-block" id="topic-${key}">
+    <div class="topic-head" data-key="${key}"><span class="th-title">${esc(t.title)}</span><span class="toggle-ic">&#9660;</span></div>
+    <div class="topic-body" data-key="${key}">${renderTopicBody(t)}</div>
+  </div>`;
+}
+function wireLightbox(){
+  document.querySelectorAll('[data-lightbox]').forEach(el=>el.addEventListener('click', ()=>{
+    const lb = document.getElementById('lightbox');
+    lb.querySelector('img').src = el.dataset.lightbox;
+    lb.querySelector('.lb-cap').textContent = el.dataset.caption || '';
+    lb.classList.add('show');
+  }));
+}
+function wireTopicToggles(){
+  document.querySelectorAll('.topic-head').forEach(h=>h.addEventListener('click', ()=>{
+    document.querySelector(`.topic-body[data-key="${h.dataset.key}"]`).classList.toggle('open');
+  }));
+  wireLightbox();
+}
+function openLibraryDevice(devId, topicTitle){
+  state.libDevice = devId;
+  renderLibrary();
+  if(topicTitle){
+    setTimeout(()=>{
+      const dev = DATA.devices.find(d=>d.id===devId);
+      if(!dev) return;
+      const idx = dev.topics.findIndex(t=>t.title===topicTitle);
+      if(idx>=0){
+        const key = `${devId}-${idx}`;
+        const body = document.querySelector(`.topic-body[data-key="${key}"]`);
+        if(body){ body.classList.add('open'); document.getElementById('topic-'+key).scrollIntoView({behavior:'smooth', block:'start'}); }
+      }
+    }, 30);
+  }
+}
+
+/* ---------------- Fault codes ---------------- */
+function renderFaultCodes(){
+  const systems = Object.keys(DATA.faultCodes);
+  if(!state.fcSystem || !DATA.faultCodes[state.fcSystem]) state.fcSystem = systems[0];
+  const labels = {sma:'SMA', solaredge:'SolarEdge / LGESAU', goodwe:'LGES 5048 (GoodWe)', em048:'EM048 (SolaX)'};
+  let html = `<div class="page-title">Fault Code Lookup</div><p class="page-sub">Search by code number or a keyword from the fault title/description.</p>`;
+  html += `<div class="fc-tabs">${systems.map(s=>`<div class="fc-tab${state.fcSystem===s?' active':''}" data-sys="${s}">${labels[s]||s}</div>`).join('')}</div>`;
+  html += `<input type="text" class="fc-search" id="fcSearch" placeholder="Filter codes&hellip;" value="${esc(state.fcQuery)}">`;
+  const sysData = DATA.faultCodes[state.fcSystem];
+  html += `<div class="note-box">${esc(sysData.sourceNote)}</div>`;
+  const q = state.fcQuery.trim().toLowerCase();
+  const rows = sysData.codes.filter(c => !q || (c.code+' '+c.title+' '+c.detail+' '+c.action).toLowerCase().includes(q));
+  html += `<table class="ftable" style="margin-top:14px;"><tr><th style="width:140px;">Code</th><th>Title</th><th>Detail</th><th>Action / notes</th></tr>`;
+  if(rows.length===0) html += `<tr><td colspan="4" style="color:var(--muted);">No matching codes.</td></tr>`;
+  rows.forEach(c=>{ html += `<tr><td><span class="code-chip">${esc(c.code)}</span></td><td><strong>${esc(c.title)}</strong></td><td>${esc(c.detail)}</td><td>${esc(c.action)}</td></tr>`; });
+  html += `</table>`;
+  document.getElementById('view-faultcodes').innerHTML = html;
+  document.querySelectorAll('.fc-tab').forEach(t=>t.addEventListener('click', ()=>{ state.fcSystem=t.dataset.sys; state.fcQuery=''; renderFaultCodes(); }));
+  const inp = document.getElementById('fcSearch');
+  inp.addEventListener('input', ()=>{ state.fcQuery = inp.value; renderFaultCodes(); const i2=document.getElementById('fcSearch'); i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); });
+}
+
+/* ---------------- Cheat sheet ---------------- */
+function renderCheatSheet(){
+  let html = `<div class="page-title">Quick-Reference Cheat Sheet</div><p class="page-sub">Every voltage/current/resistance threshold referenced across the decision trees, grouped by system. Use this for a fast sanity check against a live reading.</p>`;
+  DATA.cheatSheet.forEach(g=>{
+    html += `<div class="cheat-group"><h3>${esc(g.group)}</h3><table class="ftable"><tr><th style="width:38%;">Item</th><th>Value / rule</th></tr>`;
+    g.rows.forEach(r=>{ html += `<tr><td>${esc(r.item)}</td><td>${esc(r.value)}</td></tr>`; });
+    html += `</table></div>`;
+  });
+  document.getElementById('view-cheatsheet').innerHTML = html;
+}
+
+/* ---------------- Workflow ---------------- */
+function renderWorkflow(){
+  const wf = DATA.ticketWorkflow;
+  let html = `<div class="page-title">${esc(wf.title)}</div><p class="page-sub">${esc(wf.sourceNote)}</p>`;
+  wf.stages.forEach((s,i)=>{
+    html += `<div class="wf-stage"><div class="wf-name">${i+1}. ${esc(s.name)}</div><div class="wf-lane">Lane: ${esc(s.lane)}</div><ul>${s.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+    if(s.branch) html += `<div class="wf-branch">&#8618; ${esc(s.branch)}</div>`;
+    html += `</div>`;
+    if(i < wf.stages.length-1) html += `<div class="wf-arrow">&#8595;</div>`;
+  });
+  html += `<div class="card"><strong style="color:var(--navy);">Key rules</strong><ul class="step-list">${wf.keyRules.map(r=>`<li>${esc(r)}</li>`).join('')}</ul></div>`;
+  document.getElementById('view-workflow').innerHTML = html;
+}
+
+/* ---------------- Contacts ---------------- */
+function renderContacts(){
+  let html = `<div class="page-title">Escalation Contacts</div><p class="page-sub">Who/where to escalate to, by vendor or process step.</p>`;
+  DATA.contacts.forEach(c=>{
+    html += `<div class="card contact-card"><div>
+        <div class="c-label">${esc(c.label)}</div><div class="c-value">${esc(c.value)}</div><div class="c-note">${esc(c.note)}</div>
+      </div>${c.type==='email'||c.type==='phone' ? `<button class="copy-btn" data-copy="${esc(c.value)}">Copy</button>` : ''}</div>`;
+  });
+  document.getElementById('view-contacts').innerHTML = html;
+  document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', ()=>{
+    try{ navigator.clipboard.writeText(b.dataset.copy).then(()=>{ b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy', 1200); }).catch(()=>{}); }catch(e){}
+  }));
+}
+
+/* ---------------- Global search (troubleshooting content) ---------------- */
+function buildSearchIndex(){
+  const idx = [];
+  DATA.devices.forEach(d=>{
+    d.topics.forEach(t=>{
+      idx.push({
+        kind:'topic', tag:d.name, title:t.title,
+        snip:(t.steps&&t.steps[0])||(t.notes&&t.notes[0])||'',
+        haystack:[d.name,t.title,(t.tags||[]).join(' '),(t.steps||[]).join(' '),(t.notes||[]).join(' ')].join(' ').toLowerCase(),
+        go:()=>{ goTo('library'); openLibraryDevice(d.id, t.title); }
+      });
+    });
+  });
+  Object.entries(DATA.faultCodes).forEach(([sysKey, sys])=>{
+    sys.codes.forEach(c=>{
+      idx.push({
+        kind:'fault code', tag:sysKey.toUpperCase(), title:c.code+' — '+c.title, snip:c.detail,
+        haystack:[c.code,c.title,c.detail,c.action].join(' ').toLowerCase(),
+        go:()=>{ state.fcSystem=sysKey; state.fcQuery=c.code; goTo('faultcodes'); }
+      });
+    });
+  });
+  DATA.cheatSheet.forEach(g=>{
+    g.rows.forEach(r=>{ idx.push({kind:'cheat sheet', tag:g.group, title:r.item, snip:r.value, haystack:[g.group,r.item,r.value].join(' ').toLowerCase(), go:()=>goTo('cheatsheet')}); });
+  });
+  return idx;
+}
+let SEARCH_INDEX = null;
+function runSearch(q){
+  const box = document.getElementById('searchResults');
+  q = q.trim().toLowerCase();
+  if(!q || !DATA){ box.style.display='none'; box.innerHTML=''; return; }
+  if(!SEARCH_INDEX) SEARCH_INDEX = buildSearchIndex();
+  const terms = q.split(/\s+/).filter(Boolean);
+  const results = SEARCH_INDEX.filter(item => terms.every(term => item.haystack.includes(term))).slice(0,30);
+  if(results.length===0){ box.innerHTML = `<div class="search-empty">No matches for “${esc(q)}”.</div>`; box.style.display='block'; return; }
+  box.innerHTML = results.map((r,i)=>`<div class="sr-item" data-i="${i}"><div class="sr-tag">${esc(r.kind)} &middot; ${esc(r.tag)}</div><div class="sr-title">${esc(r.title)}</div><div class="sr-snip">${esc((r.snip||'').slice(0,120))}</div></div>`).join('');
+  box.style.display='block';
+  box.querySelectorAll('.sr-item').forEach(el=>el.addEventListener('click', ()=>{
+    results[parseInt(el.dataset.i,10)].go();
+    box.style.display='none';
+    document.getElementById('globalSearch').value='';
+  }));
+}
+
+/* ---------------- Boot ---------------- */
+function init(){
+  const searchInput = document.getElementById('globalSearch');
+  searchInput.addEventListener('input', ()=>runSearch(searchInput.value));
+  document.addEventListener('click', (e)=>{ if(!e.target.closest('.search-wrap')) document.getElementById('searchResults').style.display='none'; });
+  document.getElementById('menuBtn').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  });
+  document.getElementById('overlay').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  });
+  const lb = document.getElementById('lightbox');
+  lb.addEventListener('click', ()=>lb.classList.remove('show'));
+  lb.querySelector('.lb-inner').addEventListener('click', (e)=>e.stopPropagation());
+  document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click', ()=>goTo(b.dataset.goto)));
+  window.addEventListener('hashchange', ()=>{ const v=(location.hash||'').slice(1); if(v && v!==state.view) goTo(v); });
+  goTo((location.hash||'').slice(1) || 'rma');
+}
+init();
+fetch('data.json').then(r=>{ if(!r.ok) throw new Error('data.json ('+r.status+')'); return r.json(); }).then(d=>{
+  DATA = d;
+  if(state.view==='wizard' && !state.wizardNode) state.wizardNode = DATA.wizard.start;
+  renderView(state.view);
+}).catch(err=>{
+  ['home','wizard','library','faultcodes','cheatsheet','workflow','contacts'].forEach(v=>{
+    document.getElementById('view-'+v).innerHTML = `<div class="card"><strong>Could not load troubleshooting data.</strong><br>${esc(err.message)}</div>`;
+  });
+});
+</script>
+</body>
+</html>
