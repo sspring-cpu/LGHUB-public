@@ -664,11 +664,20 @@ function renderNav(){
     : `<div class="navlink${state.view===n.id?' active':''}" data-view="${n.id}"><span class="ic">${n.ic}</span><span>${n.label}</span></div>`).join('');
   el.querySelectorAll('.navlink').forEach(n => n.addEventListener('click', () => goTo(n.dataset.view)));
 }
+function syncViewHash(view){
+  const hash = '#'+view;
+  if(location.hash === hash) return;
+  try{
+    history.replaceState(null, '', hash);
+  }catch(error){
+    console.warn('Could not replace the embedded app history entry; using a fragment update instead.', error);
+    location.hash = hash;
+  }
+}
 function goTo(view){
   if(!VIEWS.find(n=>n.id===view)) view = 'rma';
   state.view = view;
   if(view === 'wizard' && state.wizardPath.length===0 && DATA){ state.wizardNode = DATA.wizard.start; }
-  if(location.hash !== '#'+view) history.replaceState(null, '', '#'+view);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
   const navEntry = VIEWS.find(n=>n.id===view);
@@ -678,6 +687,7 @@ function goTo(view){
   renderView(view);
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
+  syncViewHash(view);
   window.scrollTo(0,0);
 }
 function renderView(view){
